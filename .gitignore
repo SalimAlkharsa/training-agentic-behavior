@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Models and Data (large files)
+models/base/*
+models/lora/*
+models/dpo/*
+data/raw/*
+data/processed/*
+data/synthetic/*
+*.bin
+*.safetensors
+*.pth
+*.pt
+*.ckpt
+
+# Keep directory structure
+!models/base/.gitkeep
+!models/lora/.gitkeep
+!models/dpo/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+
+# Results (keep metrics but not plots)
+results/plots/*.png
+results/plots/*.jpg
+results/plots/*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Weights & Biases
+wandb/
+
+# Environment
+.env
+.env.local
