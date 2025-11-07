@@ -14,6 +14,9 @@ pip-delete-this-directory.txt
 .coverage
 htmlcov/
 
+# Get rid of any *demo* scripts -- I am using these for local testing only
+*demo.py
+
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb_checkpoints/
@@ -43,6 +46,9 @@ data/synthetic/*
 results/plots/*.png
 results/plots/*.jpg
 results/plots/*.pdf
+
+# Results metrics (I'll keep the ones I care about but generally there's no need to track all)
+results/metrics/*.json
 
 # IDE
 .vscode/
