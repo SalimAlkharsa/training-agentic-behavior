@@ -1,3 +1,5 @@
+Note this is still in progress, this README is not accurate and only reflects my ideal vision of this when done. Do not put too much attention to this right now, it was just me describing to ChatGPT how I want things to happen and the modularity I expect so I can guide my work and look at this as a checklist
+
 # AgentCoder
 
 **A lightweight experimental framework for studying tool-use behavior in small code-generation models**
@@ -17,6 +19,7 @@ AgentCoder explores when and how code-generation models choose to use external t
 ## Features
 
 ### Core Capabilities
+
 - **Multi-Model Support**: Qwen2.5-Coder, DeepSeek-Coder, StarCoder2, Phi-3-mini
 - **Safe Code Execution**: Sandboxed Python execution with resource limits
 - **Tool System**: Registry of tools (code_executor, symbolic_math, web_search, file_ops)
@@ -243,14 +246,17 @@ evaluator.save_plots("results/plots/evaluation_v1.png")
 ### Prompt Categories
 
 1. **Pure Reasoning** (should NOT use tools)
+
    - Code explanation, algorithm design, syntax analysis
    - Example: "Explain how quicksort works"
 
 2. **Execution Required** (should use `code_executor`)
+
    - Numerical computation, data transformation, runtime verification
    - Example: "Calculate the 50th Fibonacci number"
 
 3. **Ambiguous** (judgment call)
+
    - Simple math, small transformations
    - Example: "What is 15 factorial?"
 
@@ -277,16 +283,19 @@ evaluator.save_plots("results/plots/evaluation_v1.png")
 ## Training Approaches
 
 ### 1. LoRA (Low-Rank Adaptation)
+
 - **Best for**: Quick experiments, limited compute
 - **Pros**: Fast training, small adapter files (~10MB), good results
 - **Cons**: Limited to supervised learning
 
 ### 2. DPO (Direct Preference Optimization)
+
 - **Best for**: Learning from preferences, stable training
 - **Pros**: Simpler than PPO, no reward model needed
 - **Cons**: Requires preference pairs (good/bad examples)
 
 ### 3. PPO (Proximal Policy Optimization)
+
 - **Best for**: Complex reward functions, RL research
 - **Pros**: Can optimize for multiple objectives
 - **Cons**: Training complexity, hyperparameter sensitivity
@@ -296,12 +305,14 @@ evaluator.save_plots("results/plots/evaluation_v1.png")
 ## Evaluation Metrics
 
 ### Primary Metrics
+
 1. **Correctness Rate**: % of tasks solved correctly
 2. **Tool Selection Accuracy**: % of optimal tool choices (precision, recall, F1)
 3. **Inference Latency**: Time to generate response (ms)
 4. **Execution Efficiency**: Unnecessary tool calls avoided
 
 ### Secondary Metrics
+
 - Token efficiency (output length)
 - Error recovery rate (multi-step tasks)
 - Memory usage per inference
@@ -313,19 +324,20 @@ evaluator.save_plots("results/plots/evaluation_v1.png")
 
 Approximate VRAM/RAM usage by model:
 
-| Model | Quantization | Memory | Notes |
-|-------|--------------|--------|-------|
-| Qwen2.5-Coder-3B | 4-bit | ~2-3 GB | Recommended for 8GB systems |
-| Qwen2.5-Coder-3B | 8-bit | ~4-5 GB | Better quality |
-| DeepSeek-Coder-1.3B | 4-bit | ~1-2 GB | Fastest training |
-| StarCoder2-3B | 4-bit | ~2-3 GB | Good code understanding |
-| Phi-3-mini (3.8B) | 4-bit | ~3-4 GB | Strong reasoning |
+| Model               | Quantization | Memory  | Notes                       |
+| ------------------- | ------------ | ------- | --------------------------- |
+| Qwen2.5-Coder-3B    | 4-bit        | ~2-3 GB | Recommended for 8GB systems |
+| Qwen2.5-Coder-3B    | 8-bit        | ~4-5 GB | Better quality              |
+| DeepSeek-Coder-1.3B | 4-bit        | ~1-2 GB | Fastest training            |
+| StarCoder2-3B       | 4-bit        | ~2-3 GB | Good code understanding     |
+| Phi-3-mini (3.8B)   | 4-bit        | ~3-4 GB | Strong reasoning            |
 
 ---
 
 ## Reproducibility
 
 All experiments log:
+
 - Random seeds (Python, NumPy, PyTorch)
 - Model configurations and hyperparameters
 - Dataset versions and splits
@@ -344,22 +356,26 @@ python experiments/replay.py --config experiments/configs/experiment_20250102_14
 ## Project Roadmap
 
 ### Phase 1: Infrastructure (Current)
+
 - ✅ Model wrapper with quantization
 - ✅ Metrics recording
 - 🚧 Code execution sandbox
 - 🚧 Tool registry system
 
 ### Phase 2: Data & Baseline
+
 - 🔲 Synthetic dataset generation (200+ prompts)
 - 🔲 Baseline evaluation pipeline
 - 🔲 Failure pattern analysis
 
 ### Phase 3: Training
+
 - 🔲 LoRA fine-tuning implementation
 - 🔲 DPO preference optimization
 - 🔲 PPO reinforcement learning (optional)
 
 ### Phase 4: Analysis
+
 - 🔲 Comparative evaluation
 - 🔲 Visualization and reporting
 - 🔲 Research findings documentation
@@ -439,6 +455,7 @@ Model licenses vary by provider (Qwen, DeepSeek, StarCoder2, Phi-3). Please refe
 ## Contributing
 
 Contributions welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
@@ -451,6 +468,7 @@ See `CONTRIBUTING.md` for detailed guidelines.
 ## Acknowledgments
 
 Built with:
+
 - [HuggingFace Transformers](https://huggingface.co/transformers)
 - [PEFT](https://github.com/huggingface/peft) for LoRA
 - [TRL](https://github.com/huggingface/trl) for RL training
