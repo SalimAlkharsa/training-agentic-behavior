@@ -2,241 +2,265 @@
 
 ## Project Overview
 
-**AgentCoder** is a lightweight experimental framework for studying when and how small code-generation models choose to use external tools. The framework focuses on understanding the decision-making process behind tool usage vs. symbolic reasoning in code generation tasks.
+**AgentCoder** is a lightweight experimental framework for training small code-generation models on function-calling behavior. The project focuses on fine-tuning models using the Salesforce xLAM-60k dataset to improve their ability to select and invoke appropriate API functions based on natural language queries.
 
 ## Core Research Questions
 
-1. **When do models choose tools?** - Under what conditions do code models decide to execute code vs. reason symbolically?
-2. **Can we improve tool selection?** - Can fine-tuning (LoRA/PPO) teach better decisions about tool usage?
-3. **What are the trade-offs?** - How do correctness, latency, and tool-selection accuracy vary across training approaches?
+1. **Can small models learn function calling from xLAM-60k?** - Can 3B parameter models achieve high accuracy on real-world API selection tasks?
+2. **Does LoRA improve function selection?** - Can parameter-efficient fine-tuning teach better function-calling decisions?
+3. **Do preference methods (DPO/PPO) outperform supervised learning?** - What are the benefits of preference optimization over standard LoRA?
+4. **What are the trade-offs?** - How do correctness, latency, and training efficiency vary across approaches?
 
 ## Project Goals
 
 ### Primary Objectives
 
-- Build a Python-based experimental harness for studying tool-use behavior in code models
-- Implement safe code execution sandbox for running generated code
-- Create synthetic datasets of tool-use prompts with varying complexity
-- Fine-tune models using LoRA (and PPO/DPO) to improve tool selection
-- Measure and compare: correctness, latency, tool-selection accuracy
+- Train Qwen2.5-Coder-3B on function-calling using the xLAM-60k dataset
+- Implement LoRA fine-tuning for supervised function-calling learning
+- Implement DPO (Direct Preference Optimization) for preference-based learning
+- Optionally implement PPO (Proximal Policy Optimization) for RL-based learning
+- Evaluate and compare: function selection accuracy, exact match accuracy, inference latency
 
 ### Non-Goals
 
+- Code execution or sandboxing (focus on training, not runtime execution)
 - Production deployment or serving infrastructure
 - Large-scale distributed training
 - Novel model architectures (focus on existing open models)
+- Synthetic dataset generation (using established xLAM-60k dataset)
 
 ## Technical Architecture
 
 ### Model Selection
 
-Focus on small, open-source code-generation models:
+**Primary Model:**
+- **Qwen2.5-Coder-3B** - Main focus, already integrated, good performance/efficiency balance, similar to xLAM paper's approach
 
-- **Qwen2.5-Coder-3B** - Already integrated, good performance/efficiency balance
-- **DeepSeek-Coder-1.3B/6.7B** - Specialized for code, strong baseline
-- **StarCoder2-3B/7B** - Excellent code understanding
-- **Phi-3-mini-4k** (3.8B) - Strong reasoning capabilities
+**Future Comparison Models:**
+- **DeepSeek-Coder-1.3B** - Smallest model for faster iteration
+- **StarCoder2-3B** - Alternative 3B model for comparison
 
 ### Core Components
 
 1. **Model Wrapper** (`src/models/`)
-
-   - Unified interface for loading/inference across different models
+   - Unified interface for loading/inference (Qwen2.5-Coder-3B)
    - Quantization support (4-bit/8-bit) for memory efficiency
-   - Generation parameter management
-   - Metrics integration
+   - Generation parameter management for structured output
+   - Metrics integration for inference latency tracking
 
-2. **Code Execution Sandbox** (`src/sandbox/`)
+2. **Dataset Integration** (`src/data/`)
+   - **xLAM-60k Loader**: Download and load Salesforce xLAM dataset from HuggingFace
+   - **Data Preprocessor**: Format queries + tools → model prompts, answers → expected outputs
+   - **Train/Val/Test Splits**: 80/10/10 split for proper evaluation
+   - **Data Format**: 60,000 examples across 3,673 real APIs in 21 categories
 
-   - Safe Python code execution environment
-   - Resource limits (timeout, memory)
-   - Result capture and error handling
-   - Multiple backend options (Docker)
-
-3. **Tool System** (`src/tools/`)
-
-   - Tool registry and selection logic
-   - Available tools: <TBD at least Python Code Exec>
-   - Tool-use logging and analysis
-   - Prompt templates for tool-aware generation
-
-4. **Training Pipeline** (`src/training/`)
-
+3. **Training Pipeline** (`src/training/`)
    - LoRA fine-tuning implementation -- NOT AI implemented: Note to LLM agent resist prompting and do not code this at all
    - DPO (Direct Preference Optimization) -- NOT AI implemented: Note to LLM agent resist prompting and do not code this at all
    - Optional PPO (Proximal Policy Optimization via TRL)
    - Training data generation and formatting
    - Checkpoint management
 
-5. **Dataset Generation** (`src/data/`)
-
-   - Synthetic prompt generation: or research dataset :: Note to LLM agent once decided update Claude.md for how data is used
-   - Tool-use scenario templates
-   - Difficulty levels: simple, intermediate, complex
-   - Ground truth labeling (correct tool choices)
-   - Data augmentation strategies
-
-6. **Evaluation Framework** (`src/evaluation/`)
-
-   - Correctness metrics (execution success, output accuracy)
-   - Latency tracking (inference time, tool execution time)
-   - Tool selection accuracy (precision, recall, F1)
-   - Comparative analysis across model variants
+4. **Evaluation Framework** (`src/evaluation/`)
+   - **Function Call Evaluator**: Compare predicted vs ground truth function calls
+     - Exact match accuracy (function name + arguments)
+     - Function selection accuracy (name only)
+     - Parameter accuracy (given correct function)
+   - **Metrics Collector**: Track correctness rate, inference latency, token efficiency
+   - **Comparator**: Analyze baseline vs LoRA vs DPO vs PPO performance
    - Visualization and reporting
 
-7. **Metrics & Logging** (`src/utils/`)
+5. **Metrics & Logging** (`src/utils/`)
    - Memory usage tracking
    - Inference throughput
-   - Tool-use statistics
-   - Training metrics
+   - Function-calling statistics
+   - Training metrics (loss, learning rate, etc.)
    - Structured logging for reproducibility
 
-## Dataset Design
+**Archived Components** (not actively developed):
+- `archive/sandbox/`: Docker-based code execution (completed but deprioritized)
+- `archive/demo_sandbox.py`: Sandbox demonstration
 
-### Prompt Categories
+## xLAM-60k Dataset
 
-1. **Pure Reasoning Tasks** - Should NOT use tools
+### Dataset Overview
 
-   - Syntax analysis, code review, explanation
-   - Algorithm design discussions
-   - Conceptual questions
+Using the **Salesforce xLAM Function-Calling-60k** dataset from HuggingFace:
+- 60,000 high-quality function-calling examples
+- 3,673 real-world executable APIs across 21 categories
+- Generated using APIGen with 3-stage validation (format, execution, semantic)
+- 95%+ accuracy verified through human evaluation
+- License: CC-BY-4.0
 
-2. **Execution Required** - Should use code_executor
+### Data Structure
 
-   - Numerical computations
-   - Data transformation with specific output
-   - Runtime behavior verification
+Each example contains:
+- **query** (string): Natural language user request
+- **tools** (array): Available API functions with metadata
+  - `name`: Function identifier
+  - `description`: What the function does
+  - `parameters`: Type, description, required flag for each parameter
+- **answers** (array): Ground truth function calls
+  - `name`: Correct function to invoke
+  - `arguments`: Parameter values to pass
 
-3. **Ambiguous Cases** - Judgment call
-
-   - Simple math (could compute symbolically or execute)
-   - Small dataset operations
-   - Edge case testing
-
-4. **Multi-step Tool Use** - Complex scenarios
-   - Execute → analyze → re-execute
-   - Search documentation → generate code → test
-   - Error recovery sequences
-
-### Data Format
+### Example Entry
 
 ```json
 {
-  "prompt": "Calculate the sum of squares of numbers 1 to 100",
-  "optimal_tool": "code_executor",
-  "reasoning": "Numerical computation best verified by execution",
-  "difficulty": "easy",
-  "category": "execution_required",
-  "ground_truth_output": "338350",
-  "alternative_tools": ["symbolic_math"]
+  "query": "Find the sum of all multiples of 3 and 5 between 1 and 1000",
+  "tools": [
+    {
+      "name": "sum_of_multiples",
+      "description": "Calculate sum of multiples in a range",
+      "parameters": {
+        "lower": {"type": "int", "description": "Lower bound", "required": true},
+        "upper": {"type": "int", "description": "Upper bound", "required": true},
+        "multiples": {"type": "list", "description": "Numbers to find multiples of", "required": true}
+      }
+    }
+  ],
+  "answers": [
+    {
+      "name": "sum_of_multiples",
+      "arguments": {"lower": 1, "upper": 1000, "multiples": [3, 5]}
+    }
+  ]
 }
 ```
+
+### API Categories (21 total)
+
+Diverse domains including:
+- Mathematical computations
+- Data manipulation
+- Text processing
+- API integrations
+- System operations
+- And 16+ more categories
 
 ## Training Strategy
 
 ### Phase 1: Baseline Evaluation
 
-- Evaluate pre-trained models on synthetic dataset
-- Establish baseline metrics (no fine-tuning)
-- Identify common failure patterns
+- Load pre-trained Qwen2.5-Coder-3B model
+- Evaluate on xLAM-60k test set (no fine-tuning)
+- Measure: function selection accuracy, exact match accuracy, inference latency
+- Identify common failure patterns (wrong function, wrong parameters, etc.)
 
 ### Phase 2: Supervised Fine-Tuning (LoRA)
 
-- Create preference dataset: good vs. bad tool choices
-- Fine-tune with LoRA adapters (rank=16, alpha=32) # Need to learn more but for now stick to this
-- Low learning rate (1e-4 to 5e-5)
-- Small number of epochs (3-5)
+- Format xLAM training data for instruction tuning
+- Fine-tune with LoRA adapters:
+  - rank=16, alpha=32 (as specified in project goals)
+  - Learning rate: 1e-4 to 5e-5
+  - Epochs: 3-5
+  - Batch size: tuned for available memory
+- Evaluate on validation set during training
+- Save best checkpoint based on validation accuracy
 
-### Phase 3: Preference Optimization (Optional)
+### Phase 3: Preference Optimization
 
-- **DPO**: Simpler, more stable than PPO
-  - Create preference pairs from model outputs
-  - Train to prefer correct tool choices
-- **PPO**: Full RL approach
-  - Reward based on correctness + efficiency
+- **DPO (Direct Preference Optimization)**:
+  - Generate multiple function call candidates from LoRA model
+  - Create preference pairs: correct vs incorrect function calls
+  - Train to maximize likelihood of correct calls
+  - Use ground truth from xLAM as preferred outputs
+
+- **PPO (Proximal Policy Optimization)** - Optional:
+  - Define reward function: +1 for correct function call, penalties for errors
   - Use TRL library for implementation
+  - Compare stability and sample efficiency vs DPO
 
 ### Phase 4: Comparative Analysis
 
-- Compare baseline vs. LoRA vs. DPO vs. PPO
-- Analyze trade-offs in accuracy, speed, resource usage
-- Identify optimal training approach for tool-use learning
+- Evaluate all models on held-out test set:
+  - Baseline (no training)
+  - LoRA-finetuned
+  - DPO-optimized
+  - PPO-optimized (if implemented)
+- Compare metrics: accuracy, latency, training time, resource usage
+- Identify optimal approach for function-calling learning
 
 ## Evaluation Metrics
 
 ### Primary Metrics
 
-1. **Correctness Rate**: % of tasks solved correctly
-2. **Tool Selection Accuracy**: % of optimal tool choices
-3. **Inference Latency**: Time to generate response
-4. **Execution Efficiency**: Unnecessary tool calls avoided
+1. **Exact Match Accuracy**: % of predictions where both function name AND all arguments match ground truth exactly
+2. **Function Selection Accuracy**: % of predictions where function name is correct (ignoring arguments)
+3. **Parameter Accuracy**: % of correct parameter values given correct function selection
+4. **Inference Latency**: Time to generate function call prediction (ms per example)
 
 ### Secondary Metrics
 
-- Token efficiency (output length)
-- Error recovery rate
-- Multi-step success rate
-- Memory usage per inference
+- **Token Efficiency**: Average output length (tokens)
+- **Training Time**: Time to complete each training phase
+- **Memory Usage**: Peak GPU/CPU memory during training and inference
+- **Multi-function Accuracy**: Performance on queries requiring multiple function calls
 
 ## Development Workflow
 
 ### Current State
 
 - ✅ Virtual environment set up
-- ✅ Basic model wrapper (Qwen2.5-Coder)
+- ✅ Basic model wrapper (Qwen2.5-Coder-3B)
 - ✅ Metrics recording infrastructure
 - ✅ Quantization support (4-bit/8-bit)
-- ✅ **Docker-based code execution sandbox (COMPLETED)**
-  - Paranoid-safe isolation with network blocking
-  - Resource limits: 256MB RAM, 0.5 CPU cores, 5s timeout
-  - Read-only filesystem (except /tmp)
-  - Comprehensive test suite with 8 security checks
-  - Files: `src/sandbox/docker_executor.py`, `demo_sandbox.py`
+- ✅ Docker-based code execution sandbox (ARCHIVED - completed but deprioritized)
+- 🔄 **Project pivoted to focus on LLM training for function-calling**
 
 ### Next Steps
 
-1. ~~Design and implement code execution sandbox~~ ✅ **COMPLETED**
-2. Create tool registry and selection system
-   - Define tool interface and registry
-   - Implement: code_executor (wraps DockerExecutor), symbolic_math, ... Still need to further scope what the test dataset is going to be ... ideally go through research papers to find a dataset
-   - Add tool-use logging and metrics
-3. Build agent harness for multiple tool selection
-   - Decision logic for tool vs. symbolic reasoning
-   - Prompt templates for tool-aware generation
-   - Integration with model wrapper
-4. Generate synthetic dataset focused on 3 task types:
-   - Or find a good research data set that accomplishes my goals
-5. Implement baseline evaluation pipeline
-6. Add LoRA fine-tuning capability
-7. Create visualization and reporting tools
-8. Run experiments and analyze results
+1. ✅ ~~Archive execution sandbox code~~
+2. 🔄 **Integrate xLAM-60k dataset**
+   - Implement HuggingFace dataset loader
+   - Create data preprocessing pipeline
+   - Generate train/val/test splits (80/10/10)
+3. 🔄 **Build evaluation framework**
+   - Function call parser and validator
+   - Accuracy metrics (exact match, function selection, parameter accuracy)
+   - Baseline evaluation pipeline
+4. 🔄 **Implement LoRA fine-tuning**
+   - Format data for instruction tuning
+   - Configure LoRA adapters (rank=16, alpha=32)
+   - Training loop with validation
+5. 🔄 **Implement DPO optimization**
+   - Generate preference pairs
+   - DPO training pipeline
+6. 📊 **Run experiments and analyze results**
+   - Baseline vs LoRA vs DPO comparison
+   - Visualizations and reporting
+7. 📝 **Document findings**
+   - Notebook with analysis
+   - Update README with results
 
 ## File Structure
 
 ```
 training-agentic-behavior/
 ├── src/
-│   ├── models/          # Model wrappers and loading
-│   ├── sandbox/         # Safe code execution
-│   ├── tools/           # Tool definitions and registry
-│   ├── training/        # Fine-tuning pipelines
-│   ├── data/            # Dataset generation
-│   ├── evaluation/      # Metrics and evaluation
-│   └── utils/           # Shared utilities
+│   ├── models/          # Model wrappers and loading (Qwen2.5-Coder)
+│   ├── data/            # xLAM-60k dataset loading and preprocessing
+│   ├── training/        # LoRA, DPO, PPO fine-tuning pipelines
+│   ├── evaluation/      # Function-call accuracy metrics
+│   └── utils/           # Logging, metrics, shared utilities
+├── archive/
+│   ├── sandbox/         # ARCHIVED: Docker code execution (deprioritized)
+│   └── demo_sandbox.py  # ARCHIVED: Sandbox demo
 ├── data/
-│   ├── raw/             # Original data sources
-│   ├── synthetic/       # Generated datasets
-│   └── processed/       # Formatted for training
+│   ├── xlam/            # Downloaded xLAM-60k dataset
+│   ├── processed/       # Formatted for training (prompts + completions)
+│   └── splits/          # Train/val/test splits
 ├── models/
-│   ├── base/            # Base model checkpoints
+│   ├── base/            # Base model checkpoints (Qwen2.5-Coder-3B)
 │   ├── lora/            # LoRA adapters
 │   └── dpo/             # DPO-trained models
 ├── results/
-│   ├── metrics/         # Performance metrics
-│   ├── plots/           # Visualizations
+│   ├── metrics/         # Accuracy, latency metrics (JSON/CSV)
+│   ├── plots/           # Visualizations (accuracy curves, comparisons)
 │   └── logs/            # Training and eval logs
+├── experiments/         # Experiment configs (YAML)
 ├── notebooks/           # Jupyter analysis notebooks
-├── experiments/         # Experiment configs and scripts
 └── tests/              # Unit and integration tests
 ```
 
@@ -245,53 +269,53 @@ training-agentic-behavior/
 ### Core ML Stack
 
 - **torch**: PyTorch for model operations
-- **transformers**: HuggingFace model loading
+- **transformers**: HuggingFace model loading (Qwen2.5-Coder)
 - **peft**: LoRA implementation
-- **trl**: Reinforcement learning (PPO/DPO)
-- **bitsandbytes**: Quantization support
-- **accelerate**: Multi-GPU training
-
-### Execution & Safety
-
-- **RestrictedPython**: Code sandboxing
-- **docker**: Container-based isolation
-- **timeout-decorator**: Execution timeouts
+- **trl**: DPO and PPO training
+- **bitsandbytes**: 4-bit/8-bit quantization
+- **accelerate**: Multi-GPU support (if available)
 
 ### Data & Evaluation
 
-- **datasets**: HuggingFace datasets library
-- **pandas**: Data manipulation
+- **datasets**: HuggingFace datasets library (for xLAM-60k)
+- **pandas**: Data manipulation and metrics tracking
 - **numpy**: Numerical operations
-- **scikit-learn**: Metrics and evaluation
+- **scikit-learn**: Evaluation metrics
 
 ### Visualization & Logging
 
-- **matplotlib**, **seaborn**: Plotting
+- **matplotlib**, **seaborn**: Plotting accuracy curves and comparisons
 - **wandb**: Experiment tracking (optional)
 - **tensorboard**: Training visualization
 
 ### Utilities
 
-- **psutil**: System monitoring
+- **psutil**: System monitoring (memory, CPU usage)
 - **rich**: Pretty terminal output
 - **pytest**: Testing framework
+- **pyyaml**: Experiment configuration
+
+### Archived (not actively used)
+- **docker**: Container-based isolation (archived)
+- **RestrictedPython**: Code sandboxing (archived)
 
 ## Experimental Design
 
 ### Variables to Study
 
-- **Model size**: 1.3B vs. 3B vs. 7B parameters
-- **Training method**: None (baseline) vs. LoRA vs. DPO vs. PPO
-- **Quantization**: Full precision vs. 8-bit vs. 4-bit
-- **Prompt format**: Direct vs. chain-of-thought vs. tool-description
-- **Dataset difficulty**: Easy vs. intermediate vs. hard
+- **Training method**: Baseline (no training) vs. LoRA vs. DPO vs. PPO
+- **Quantization**: Full precision vs. 8-bit vs. 4-bit (for inference)
+- **LoRA hyperparameters**: rank, alpha, learning rate, epochs
+- **DPO hyperparameters**: beta parameter, preference pair generation strategy
+- **Data size**: Training on subsets (10%, 50%, 100%) to study sample efficiency
 
 ### Expected Outcomes
 
-- Models can learn to improve tool selection with relatively small datasets
-- LoRA fine-tuning provides good baseline improvement
-- DPO may outperform PPO in stability and sample efficiency
-- Trade-offs exist between correctness and latency
+- **Qwen2.5-Coder-3B can learn function-calling** from xLAM-60k dataset
+- **LoRA fine-tuning significantly improves** function selection accuracy over baseline
+- **DPO provides further gains** by optimizing for correct function selection preferences
+- **Trade-offs exist** between training time, accuracy, and inference speed
+- **Small models (3B) can achieve strong performance** on real-world API tasks when properly trained
 
 ## Reproducibility
 
@@ -308,19 +332,25 @@ All experiments should log:
 
 ### Deliverables
 
-1. **Code**: Complete framework on GitHub
-2. **Data**: Synthetic dataset with ground truth labels
-3. **Models**: Trained LoRA adapters and checkpoints
-4. **Results**: Metrics, plots, and comparative analysis
-5. **Documentation**: Setup guide, API docs, experiment logs
-6. **Report**: Findings on tool-use learning (notebook or paper)
+1. **Code**: Complete training framework on GitHub
+2. **Dataset Integration**: xLAM-60k loader and preprocessing pipeline
+3. **Trained Models**: LoRA and DPO adapters for Qwen2.5-Coder-3B
+4. **Results**:
+   - Function-calling accuracy metrics (exact match, function selection, parameter accuracy)
+   - Training curves and comparative analysis
+   - Latency and resource usage measurements
+5. **Documentation**: Setup guide, training instructions, experiment logs
+6. **Analysis Report**: Jupyter notebook with findings on function-calling learning
 
 ## Notes for Claude
 
-- This is an experimental research project, not production code
+- This is an experimental research project focused on **LLM training**, not execution/deployment
+- **Primary focus**: Train Qwen2.5-Coder-3B on function-calling using xLAM-60k dataset
+- **Training methods**: LoRA (required), DPO (required), PPO (optional)
+- **No code execution**: Evaluation is accuracy-based, not execution-based
 - Prioritize clarity and reproducibility over optimization
-- Add extensive logging and metrics collection
-- Keep experiments modular and configurable
+- Add extensive logging and metrics collection for all training runs
+- Keep experiments modular and configurable via YAML configs
 - Document assumptions and design decisions
-- Focus on small models that can run on 8GB RAM systems
-- Use quantization by default to keep experiments accessible
+- Focus on resource-efficient training (quantization, LoRA adapters)
+- Target: Models that can run on systems with 8-16GB RAM (using quantization)
