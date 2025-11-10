@@ -135,7 +135,7 @@ class Qwen2Wrapper:
             model_kwargs["device_map"] = "auto"
         else:
             # Use float16 for CUDA/MPS, float32 for CPU
-            model_kwargs["torch_dtype"] = torch.float16 if self.device in ["cuda", "mps"] else torch.float32
+            model_kwargs["dtype"] = torch.float16 if self.device in ["cuda", "mps"] else torch.float32
 
         self.model = AutoModelForCausalLM.from_pretrained(**model_kwargs)
 
@@ -154,8 +154,6 @@ class Qwen2Wrapper:
         self,
         prompt: Union[str, List[str]],
         max_length: int = 512,
-        temperature: float = 0.7,
-        top_p: float = 0.9,
         top_k: int = 50,
         num_return_sequences: int = 1,
         do_sample: bool = True,
